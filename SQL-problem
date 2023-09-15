@@ -1,0 +1,70 @@
+Part 1 - SQL Questions
+1. Explore Clinical and Genomics Tables
+2. Find all patients that are alive and have a 'AKT1' or 'TP53' mutation
+3. Count the number of patients with each type of cancer (Histology)
+4. Find the age distribution for patients with stage 3 or higher
+5. What is the most prevalent genomic mutation?
+6. What is the longest average survival in months and years?
+7. Write a query that would find and delete duplicate IDs assuming they exist.
+8. Write a query transaction that will change stage to III for patients who are alive, have Adenocarcinoma and a tumor size greater than 2.
+
+-- Question 2
+SELECT clinical.*
+FROM clinical
+JOIN genomics ON clinical.c1 = genomics.c1
+WHERE clinical.c2 = 'Alive'
+  AND (genomics.c2 = 'AKT1' OR genomics.c2 = 'TP53_Col1' OR genomics.c2 = 'TP53_Col2');
+  
+-- Question 3
+SELECT c13, COUNT(*) 
+FROM clinical
+GROUP BY c13
+
+-- Question 4
+SELECT stage_roman, MIN(c4) AS min_age, MAX(c4) AS max_age
+FROM (
+  SELECT
+    c11 AS stage_roman,
+    CASE
+      WHEN c11 LIKE 'IIIA' THEN '3A'
+      WHEN c11 LIKE 'IIIB' THEN '3B'
+      WHEN c11 LIKE 'IV' THEN '4'
+      WHEN c11 LIKE 'IVB' THEN '4B'
+    END AS stage_arabic,
+    c4
+  FROM clinical
+) AS stage_conversion
+WHERE stage_arabic >= 3
+GROUP BY stage_roman
+
+-- Question 5
+SELECT c2, COUNT(*) AS mutation_count
+FROM genomics
+GROUP BY c2
+ORDER BY mutation_count DESC
+LIMIT 1;
+
+-- Question 6
+SELECT
+  AVG(c3) AS avg_survival_months
+  -- FLOOR(AVG(survival_months) / 12) AS avg_survival_years,
+FROM clinical
+ORDER BY avg_survival_months DESC
+LIMIT 1;
+
+-- Question 7
+WITH DuplicateIDs AS (
+  SELECT c1
+  FROM clinical
+  GROUP BY c1
+  HAVING COUNT(c1) > 1
+)
+DELETE FROM clinical
+WHERE c1 IN (SELECT c1 FROM DuplicateIDs);
+
+-- Question 8
+UPDATE clinical
+SET c11 = 'III'
+WHERE clinical.c2 = 'Alive' 
+  AND c13 = 'Adenocarcinoma' 
+  AND c14 > 2;
